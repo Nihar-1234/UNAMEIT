@@ -500,6 +500,109 @@ export function BabyQuiz() {
     return false;
   })();
 
+  const genderLabelMap: Record<string, string> = {
+    boy: "Boy",
+    girl: "Girl",
+    "gender-neutral": "Gender-neutral",
+    "prefer-not-to-say": "Prefer not to say",
+  };
+
+  const religionLabelMap: Record<string, string> = {
+    hinduism: "Hinduism",
+    islam: "Islam",
+    christianity: "Christianity",
+    judaism: "Judaism",
+    sikhism: "Sikhism",
+    buddhism: "Buddhism",
+    jainism: "Jainism",
+    other: "Other",
+    none: "No religious preference",
+  };
+
+  const styleLabelMap: Record<string, string> = Object.fromEntries(styleOptions.map(([value, , label]) => [value, label]));
+  const meaningLabelMap: Record<string, string> = Object.fromEntries(meaningOptions.map(([value, , label]) => [value, label]));
+
+  const getReligionPreferenceSummary = () => {
+    if (!selectedReligion || selectedReligion === "none") {
+      return null;
+    }
+
+    const tradition = babyProfile.religiousPreferences.tradition;
+    const influenceStrength = babyProfile.religiousPreferences.influenceStrength;
+    const islamicTradition = babyProfile.religiousPreferences.islamicTradition;
+    const christianTradition = babyProfile.religiousPreferences.christianTradition;
+    const inspiration = babyProfile.religiousPreferences.inspiration;
+    const jewishTradition = babyProfile.religiousPreferences.jewishTradition;
+    const sikhTradition = babyProfile.religiousPreferences.sikhTradition;
+    const buddhistTradition = babyProfile.religiousPreferences.buddhistTradition;
+    const jainTradition = babyProfile.religiousPreferences.jainTradition;
+
+    if (selectedReligion === "hinduism") {
+      if (!tradition || tradition === "No specific preference") {
+        return null;
+      }
+
+      return [
+        `Deity / tradition: ${tradition}`,
+        influenceStrength ? `Influence: ${influenceStrength}` : null,
+      ].filter(Boolean) as string[];
+    }
+
+    if (selectedReligion === "islam") {
+      return [islamicTradition ? `Tradition: ${islamicTradition}` : null].filter(Boolean) as string[];
+    }
+
+    if (selectedReligion === "christianity") {
+      const values = [
+        christianTradition ? `Tradition: ${christianTradition}` : null,
+        inspiration ? `Naming inspiration: ${inspiration}` : null,
+      ].filter(Boolean) as string[];
+      return values.length ? values : null;
+    }
+
+    if (selectedReligion === "judaism") {
+      return [jewishTradition ? `Tradition: ${jewishTradition}` : null].filter(Boolean) as string[];
+    }
+
+    if (selectedReligion === "sikhism") {
+      return [sikhTradition ? `Tradition: ${sikhTradition}` : null].filter(Boolean) as string[];
+    }
+
+    if (selectedReligion === "buddhism") {
+      return [buddhistTradition ? `Tradition: ${buddhistTradition}` : null].filter(Boolean) as string[];
+    }
+
+    if (selectedReligion === "jainism") {
+      return [jainTradition ? `Tradition: ${jainTradition}` : null].filter(Boolean) as string[];
+    }
+
+    return null;
+  };
+
+  const selectedStyleLabels = babyProfile.stylePreference === "open"
+    ? ["Open to anything"]
+    : babyProfile.styles.length > 0
+      ? babyProfile.styles.map((style) => styleLabelMap[style] ?? style)
+      : ["No specific style"];
+
+  const selectedMeaningLabels = (function getSelectedMeanings() {
+    const meaningValues = babyProfile.desiredMeanings
+      .filter((meaning) => meaning !== "custom")
+      .map((meaning) => meaningLabelMap[meaning] ?? meaning);
+
+    if (babyProfile.customMeaning.trim()) {
+      meaningValues.push(babyProfile.customMeaning.trim());
+    }
+
+    return meaningValues.length > 0 ? meaningValues : ["No specific meaning"];
+  })();
+
+  const handleEditJump = (step: QuizStep) => {
+    setShowReview(false);
+    setCurrentStep(step);
+    setStatusMessage("");
+  };
+
   return (
     <main className="quiz-shell">
       <div className="quiz-card">
@@ -1156,10 +1259,147 @@ export function BabyQuiz() {
         ) : null}
 
         {showReview ? (
-          <div className="quiz-question-wrap review-placeholder">
-            <span className="preference-section-number">REVIEW</span>
-            <h2>Review your preferences</h2>
-            <p>Your answers are ready to review. Name generation will be added in a later step.</p>
+          <div className="quiz-question-wrap review-content">
+            <div className="review-header">
+              <span className="preference-section-number">REVIEW</span>
+              <h2>Review Your Preferences</h2>
+              <p>Here&apos;s everything you&apos;ve told UnameIt. Make sure it looks right before we find your names.</p>
+            </div>
+
+            <div className="review-sections">
+              <div className="review-card">
+                <div className="review-card-header">
+                  <h3>👶 Baby</h3>
+                  <button type="button" className="review-edit-button" onClick={() => handleEditJump(1)}>Edit</button>
+                </div>
+                <div className="review-card-body">
+                  <p className="review-label">Gender</p>
+                  <p className="review-value">{genderLabelMap[babyProfile.gender ?? ""] || "Not selected"}</p>
+                </div>
+              </div>
+
+              <div className="review-card">
+                <div className="review-card-header">
+                  <h3>🌎 Naming Background</h3>
+                  <button type="button" className="review-edit-button" onClick={() => handleEditJump(2)}>Edit</button>
+                </div>
+                <div className="review-card-body">
+                  <p className="review-label">Nationality / Naming Traditions</p>
+                  <p className="review-value">
+                    {babyProfile.nationalityPreference === "none"
+                      ? "No preference"
+                      : babyProfile.nationality.length > 0
+                        ? babyProfile.nationality
+                            .map((nationality) => nationality === "Other" ? babyProfile.customNationality.trim() || "Other" : nationality)
+                            .filter(Boolean)
+                            .join(", ")
+                        : babyProfile.customNationality.trim()
+                          ? babyProfile.customNationality.trim()
+                          : "No preference"}
+                  </p>
+                </div>
+              </div>
+
+              <div className="review-card">
+                <div className="review-card-header">
+                  <h3>🕊️ Religious Preferences</h3>
+                  <button type="button" className="review-edit-button" onClick={() => handleEditJump(3)}>Edit</button>
+                </div>
+                <div className="review-card-body">
+                  <p className="review-label">Religion</p>
+                  <p className="review-value">
+                    {babyProfile.religion === "none"
+                      ? "No religious preference"
+                      : babyProfile.religion === "other"
+                        ? babyProfile.customReligion.trim() || "Other"
+                        : religionLabelMap[babyProfile.religion ?? ""] || "Not selected"}
+                  </p>
+                  {selectedReligion && selectedReligion !== "none" && selectedReligion !== "other" && getReligionPreferenceSummary()?.length ? (
+                    <div className="review-micro-list">
+                      {getReligionPreferenceSummary()?.map((line) => <p key={line}>{line}</p>)}
+                    </div>
+                  ) : null}
+                </div>
+              </div>
+
+              <div className="review-card">
+                <div className="review-card-header">
+                  <h3>👨‍👩‍👧 Family</h3>
+                  <button type="button" className="review-edit-button" onClick={() => handleEditJump(5)}>Edit</button>
+                </div>
+                <div className="review-card-body">
+                  <p className="review-label">Last name</p>
+                  <p className="review-value">{babyProfile.fatherLastName || "Not provided"}</p>
+                  {babyProfile.fatherFirstName ? <p className="review-detail"><strong>Father&apos;s first name:</strong> {babyProfile.fatherFirstName}</p> : null}
+                  {babyProfile.motherFirstName ? <p className="review-detail"><strong>Mother&apos;s first name:</strong> {babyProfile.motherFirstName}</p> : null}
+                  {babyProfile.motherLastName ? <p className="review-detail"><strong>Mother&apos;s last name:</strong> {babyProfile.motherLastName}</p> : null}
+                </div>
+              </div>
+
+              <div className="review-card">
+                <div className="review-card-header">
+                  <h3>✨ First Name</h3>
+                  <button type="button" className="review-edit-button" onClick={() => handleEditJump(6)}>Edit</button>
+                </div>
+                <div className="review-card-body">
+                  <p className="review-label">Starting letter</p>
+                  <p className="review-value">{babyProfile.firstNameStartingLetter ? babyProfile.firstNameStartingLetter : "Any letter"}</p>
+                </div>
+              </div>
+
+              <div className="review-card">
+                <div className="review-card-header">
+                  <h3>💫 Middle Name</h3>
+                  <button type="button" className="review-edit-button" onClick={() => handleEditJump(7)}>Edit</button>
+                </div>
+                <div className="review-card-body">
+                  <p className="review-label">Middle name</p>
+                  <p className="review-value">
+                    {babyProfile.wantsMiddleName === true
+                      ? `Yes${babyProfile.middleNameStartingLetter ? ` · ${babyProfile.middleNameStartingLetter}` : " · Any"}`
+                      : babyProfile.wantsMiddleName === false
+                        ? "No"
+                        : babyProfile.wantsMiddleName === "unsure"
+                          ? "Not sure"
+                          : "Not selected"}
+                  </p>
+                </div>
+              </div>
+
+              <div className="review-card">
+                <div className="review-card-header">
+                  <h3>🎨 Name Style</h3>
+                  <button type="button" className="review-edit-button" onClick={() => handleEditJump(8)}>Edit</button>
+                </div>
+                <div className="review-card-body">
+                  <p className="review-label">Selected styles</p>
+                  <p className="review-value">{selectedStyleLabels.join(" · ")}</p>
+                </div>
+              </div>
+
+              <div className="review-card">
+                <div className="review-card-header">
+                  <h3>❤️ Meaning</h3>
+                  <button type="button" className="review-edit-button" onClick={() => handleEditJump(8)}>Edit</button>
+                </div>
+                <div className="review-card-body">
+                  <p className="review-label">Desired meanings</p>
+                  <p className="review-value">{selectedMeaningLabels.join(" · ")}</p>
+                </div>
+              </div>
+
+              {babyProfile.additionalPreferences.trim() ? (
+                <div className="review-card">
+                  <div className="review-card-header">
+                    <h3>📝 Additional Preferences</h3>
+                    <button type="button" className="review-edit-button" onClick={() => handleEditJump(8)}>Edit</button>
+                  </div>
+                  <div className="review-card-body">
+                    <p className="review-value review-long-text">{babyProfile.additionalPreferences.trim()}</p>
+                  </div>
+                </div>
+              ) : null}
+            </div>
           </div>
         ) : null}
 
@@ -1170,6 +1410,13 @@ export function BabyQuiz() {
             type="button"
             className="quiz-back-button"
             onClick={() => {
+              if (showReview) {
+                setShowReview(false);
+                setCurrentStep(8);
+                setStatusMessage("");
+                return;
+              }
+
               if (currentStep === 1) {
                 router.push("/");
                 return;
@@ -1206,12 +1453,6 @@ export function BabyQuiz() {
               }
 
               if (currentStep === 8) {
-                if (showReview) {
-                  setShowReview(false);
-                  setStatusMessage("");
-                  return;
-                }
-
                 setCurrentStep(7);
                 setStatusMessage("");
                 return;
@@ -1223,42 +1464,53 @@ export function BabyQuiz() {
           >
             ← Back
           </button>
-          <button
-            type="button"
-            className={`quiz-continue-button ${
-              (currentStep === 1
-                ? canContinueStepOne
-                : currentStep === 2
-                  ? canContinueStepTwo
-                  : currentStep === 3
-                    ? canContinueStepThree
-                    : currentStep === 4
-                      ? isReligionDone
-                      : currentStep === 5
-                        ? canContinueStepFive
-                        : true)
-                ? "quiz-continue-button-active"
-                : ""
-            }`}
-            disabled={
-              currentStep === 1
-                ? !canContinueStepOne
-                : currentStep === 2
-                  ? !canContinueStepTwo
-                  : currentStep === 3
-                    ? !canContinueStepThree
-                    : currentStep === 4
-                      ? !isReligionDone
-                      : currentStep === 5
-                        ? !canContinueStepFive
-                        : currentStep === 6
-                          ? false
-                          : babyProfile.wantsMiddleName === null
-            }
-            onClick={handleContinue}
-          >
-            Continue <span aria-hidden="true">→</span>
-          </button>
+
+          {showReview ? (
+            <button
+              type="button"
+              className="quiz-continue-button quiz-continue-button-active"
+              onClick={() => router.push("/generate")}
+            >
+              Generate My Names <span aria-hidden="true">→</span>
+            </button>
+          ) : (
+            <button
+              type="button"
+              className={`quiz-continue-button ${
+                (currentStep === 1
+                  ? canContinueStepOne
+                  : currentStep === 2
+                    ? canContinueStepTwo
+                    : currentStep === 3
+                      ? canContinueStepThree
+                      : currentStep === 4
+                        ? isReligionDone
+                        : currentStep === 5
+                          ? canContinueStepFive
+                          : true)
+                  ? "quiz-continue-button-active"
+                  : ""
+              }`}
+              disabled={
+                currentStep === 1
+                  ? !canContinueStepOne
+                  : currentStep === 2
+                    ? !canContinueStepTwo
+                    : currentStep === 3
+                      ? !canContinueStepThree
+                      : currentStep === 4
+                        ? !isReligionDone
+                        : currentStep === 5
+                          ? !canContinueStepFive
+                          : currentStep === 6
+                            ? false
+                            : babyProfile.wantsMiddleName === null
+              }
+              onClick={handleContinue}
+            >
+              Continue <span aria-hidden="true">→</span>
+            </button>
+          )}
         </div>
       </div>
     </main>
